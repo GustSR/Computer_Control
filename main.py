@@ -3,11 +3,13 @@ import mysql.connector; import os.path; import re, uuid ;import socket; import p
 import psutil; from datetime import datetime; from mysql.connector import Error; from time import sleep;
 import ipaddress; import sys; import winreg;
 
+windows_linux = platform.system()
 
 
 '''
 Obter informações do computador:
 '''
+
 def get_mac():
     # Obtém as informações da placa de rede
     net_info = psutil.net_if_addrs()
@@ -63,18 +65,6 @@ def extract_ip():
     return IP
 
 
-
-Terminal = socket.gethostname()
-#ip_local = socket.gethostbyname(so cket.gethostname()) #-> NO LINUX PEGA O IP LOCALHOST
-#ip_local = str(ipaddress.ip_address(socket.gethostbyname(socket.gethostname())))
-ip_local = extract_ip()
-windows_linux = platform.system()
-versionwindows = platform.version()
-memoria_decimal = psutil.virtual_memory().total / (1024.0 **3)
-memoria_arredondanda = round(memoria_decimal,3)
-memoria = memoria_arredondanda
-data = datetime.today().strftime('%Y-%m-%d') #-> codigo para obter data, inserido direto no banco com função do mysql.
-
 if windows_linux == 'Windows':
     def get_windows_edition():
         reg_path = r'SOFTWARE\Microsoft\Windows NT\CurrentVersion'
@@ -108,36 +98,52 @@ if windows_linux == 'Windows':
                     return 'Windows'
         except:
             return 'Unknown'
-    
+
+
+    def get_processador():
+        os.system('wmic cpu get name>processador.txt.')
+
+        with open("processador.txt", "r") as arquivo:
+            processador = arquivo.read()
+
+            processador = processador.split()
+            
+            result = [string.replace('\x00', '') for string in processador]
+            
+        
+            result = list(filter(None,result))  
+            for item in result:
+                if item == 'CPU':
+                    result.remove('CPU')
+            for item in result:
+                if item == '@':
+                    result.remove('@')
+
+            del result [0:2]
+            
+            result = [' '.join(result)]
+            processador_name = result[0]
+else: 
+    processador_name = 'Unknown'
+    edicao_windows = 'Unknown'
+
+
+
+
+
+
+
+Terminal = socket.gethostname()
+ip_local = extract_ip()
+versionwindows = platform.version()
+memoria_decimal = psutil.virtual_memory().total / (1024.0 **3)
+memoria_arredondanda = round(memoria_decimal,3)
+memoria = memoria_arredondanda
+data = datetime.today().strftime('%Y-%m-%d') 
 edicao_windows = get_windows_edition()
  
 
 
-if windows_linux == 'Windows':
-    os.system('wmic cpu get name>processador.txt.')
-
-    with open("processador.txt", "r") as arquivo:
-        processador = arquivo.read()
-
-        processador = processador.split()
-        
-        result = [string.replace('\x00', '') for string in processador]
-        
-    
-        result = list(filter(None,result))  
-        for item in result:
-            if item == 'CPU':
-                result.remove('CPU')
-        for item in result:
-            if item == '@':
-                result.remove('@')
-
-        del result [0:2]
-        
-        result = [' '.join(result)]
-        processador_name = result[0]
-else: 
-    processador_name = 'Unknown'
 
 '''
 Verificação de qual loja o computador deve ser:
