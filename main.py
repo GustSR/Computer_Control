@@ -207,10 +207,10 @@ fazendo conexão com mysql:
 '''
 try:
     conexao = mysql.connector.connect(
-        host = '177.185.141.122',
-        user = 'gust',
-        password = '1234',
-        database = 'dp_informatica',
+        host = '',
+        user = '',
+        password = '',
+        database = '',
         auth_plugin='mysql_native_password')
     cursor = conexao.cursor()  
     
