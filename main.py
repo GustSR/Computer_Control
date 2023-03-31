@@ -3,55 +3,32 @@ import mysql.connector; import os.path; import re, uuid ;import socket; import p
 import psutil; from datetime import datetime; from mysql.connector import Error; from time import sleep;
 import ipaddress; import sys; import winreg;
 
-windows_linux = platform.system()
+
 
 
 '''
 Obter informações do computador:
 '''
+windows_linux = platform.system()
 
 def get_mac():
-    # Obtém as informações da placa de rede
-    net_info = psutil.net_if_addrs()
-
-    # Percorre todas as placas de rede do sistema
-    for interface_name, interface_addresses in net_info.items():
-        # Verifica se a placa de rede é Ethernet
-        if 'Ethernet' in interface_name:
-            # Percorre todos os endereços da placa de rede
-            for address in interface_addresses:
-                # Verifica se o endereço é MAC
-                if address.family == psutil.AF_LINK:
-                    # Verifica se o endereço está sendo usado para o tráfego de rede
-                    if psutil.net_io_counters(pernic=True)[interface_name].bytes_sent > 0:
-                        # Armazena o endereço MAC em uma variável chamada 'mac'
-                        mac_andress = address.address
-                        
-                        # Verifica se o endereço MAC não é vazio
-                        if mac_andress:
-                            return mac_andress
-
-    # Se não for possível obter o endereço MAC usando psutil, usa a função uuid.getnode() para obter o endereço MAC
     mac_andress = '-'.join(re.findall('..', '%012x' % uuid.getnode()))
-    return mac_andress
-# Nome do arquivo que irá armazenar o MAC address
-mac_file = 'mac.txt'
+    mac_file = 'mac.txt'
 
-# Verificar se o arquivo com o MAC address já existe
-if os.path.isfile(mac_file):
-    # Carregar o MAC address do arquivo existente
-    with open(mac_file, 'r') as f:
-        mac = f.read()
-   
-else:
-    mac = get_mac() # Obter o MAC address da placa de rede
-    with open(mac_file, 'w') as f: # Salvar o valor do MAC address em um arquivo
-        f.write(mac)
+    if os.path.isfile(mac_file):    
+        with open(mac_file, 'r') as f:
+            mac = f.read()
+    else:
+        mac = mac_andress
+        with open(mac_file, 'w') as f: # Salvar o valor do MAC address em um arquivo
+            f.write(mac)
     
-if mac == get_mac():
-    mac_iguais = True
-else:
-    mac_iguais =False
+    return mac
+
+def get_memory():
+    memoria_decimal = psutil.virtual_memory().total / (1024.0 **3)
+    memoria_arredondanda = round(memoria_decimal,3)
+    return memoria_arredondanda
 
 def extract_ip():
     st = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -64,6 +41,14 @@ def extract_ip():
         st.close()
     return IP
 
+def verificar_mac():
+    if mac == get_mac():
+        mac_iguais = True
+    else:
+        mac_iguais =False
+    return mac_iguais
+
+def Read_mactxt():
 
 if windows_linux == 'Windows':
     def get_windows_edition():
@@ -135,10 +120,9 @@ else:
 
 Terminal = socket.gethostname()
 ip_local = extract_ip()
+mac = get_mac()
 versionwindows = platform.version()
-memoria_decimal = psutil.virtual_memory().total / (1024.0 **3)
-memoria_arredondanda = round(memoria_decimal,3)
-memoria = memoria_arredondanda
+memoria = get_memory()
 data = datetime.today().strftime('%Y-%m-%d') 
 edicao_windows = get_windows_edition()
  
@@ -148,6 +132,7 @@ edicao_windows = get_windows_edition()
 '''
 Verificação de qual loja o computador deve ser:
 '''
+
 
 def numero_da_loja_ip():
 
@@ -253,7 +238,7 @@ try:
             versao_sistema="{6}", loja = "{7}", Update_Date ="{8}" WHERE mac="{9}"'.format(Terminal,ip_local,processador_name,memoria,windows_linux,edicao_windows, versionwindows,loja,data,mac))
    
 
-    if windows_linux == 'Windows' and mac_iguais == False:
+    if windows_linux == 'Windows' and verificar_mac() == False:
         mac_antigo = mac
         mac_novo = get_mac()
         
