@@ -10,20 +10,20 @@ import ipaddress; import sys; import winreg;
 Obter informações do computador:
 '''
 windows_linux = platform.system()
+mac_atual_usado = '-'.join(re.findall('..', '%012x' % uuid.getnode()))
 
-def get_mac():
+def get_mac_txt():
     mac_andress = '-'.join(re.findall('..', '%012x' % uuid.getnode()))
     mac_file = 'mac.txt'
-
+    
     if os.path.isfile(mac_file):    
         with open(mac_file, 'r') as f:
-            mac = f.read()
+            mactxt = f.read()
     else:
-        mac = mac_andress
+        mactxt = mac_andress
         with open(mac_file, 'w') as f: # Salvar o valor do MAC address em um arquivo
-            f.write(mac)
-    
-    return mac
+            f.write(mactxt)
+    return mactxt
 
 def get_memory():
     memoria_decimal = psutil.virtual_memory().total / (1024.0 **3)
@@ -42,13 +42,11 @@ def extract_ip():
     return IP
 
 def verificar_mac():
-    if mac == get_mac():
+    if mac_atual_usado == get_mac_txt():
         mac_iguais = True
     else:
         mac_iguais =False
     return mac_iguais
-
-def Read_mactxt():
 
 if windows_linux == 'Windows':
     def get_windows_edition():
@@ -113,14 +111,9 @@ else:
     edicao_windows = 'Unknown'
 
 
-
-
-
-
-
 Terminal = socket.gethostname()
 ip_local = extract_ip()
-mac = get_mac()
+mac_txt = get_mac_txt()
 versionwindows = platform.version()
 memoria = get_memory()
 data = datetime.today().strftime('%Y-%m-%d') 
@@ -132,7 +125,6 @@ edicao_windows = get_windows_edition()
 '''
 Verificação de qual loja o computador deve ser:
 '''
-
 
 def numero_da_loja_ip():
 
@@ -147,7 +139,6 @@ def numero_da_loja_ip():
     Num_loja = [''.join(Lista_do_numero_da_loja)]
     
     return Num_loja[0]
-
 
 def numero_loja_terminal():
 
@@ -210,7 +201,6 @@ try:
     '''
     
     def selecionar_itens_bd(comando):
-        
         cursor.execute(comando)
         resultado = cursor.fetchall()
         conexao.commit()
@@ -218,29 +208,28 @@ try:
         return resultado
 
     def modificar_itens_bd(comando):
-        
         cursor.execute(comando)
         conexao.commit()
         
     '''
     Executando comandos para o banco MYSQL:
     '''
-    info_computador_bd = selecionar_itens_bd('SELECT mac FROM computadores WHERE mac = "{0}"'.format(mac)) 
-    info_date_computer = selecionar_itens_bd('SELECT Create_Date FROM computadores WHERE mac = "{0}"'.format(mac))
+    info_computador_bd = selecionar_itens_bd('SELECT mac FROM computadores WHERE mac = "{0}"'.format(mac_txt)) 
+    info_date_computer = selecionar_itens_bd('SELECT Create_Date FROM computadores WHERE mac = "{0}"'.format(mac_txt))
 
     if windows_linux == 'Windows':
         if info_computador_bd == []:
             modificar_itens_bd('INSERT INTO computadores (mac, terminal, ip, processador, memoria, windows_linux, edicao, versao_sistema,loja, Create_Date)\
-            VALUES ("{0}", "{1}", "{2}", "{3}", "{4}", "{5}", "{6}", "{7}", "{8}", "{9}");'.format(mac,Terminal,ip_local,processador_name,memoria,windows_linux, edicao_windows, versionwindows,loja,data))
+            VALUES ("{0}", "{1}", "{2}", "{3}", "{4}", "{5}", "{6}", "{7}", "{8}", "{9}");'.format(mac_txt,Terminal,ip_local,processador_name,memoria,windows_linux, edicao_windows, versionwindows,loja,data))
             
-        elif info_computador_bd[0][0] == mac:
+        elif info_computador_bd[0][0] == mac_txt:
             modificar_itens_bd('UPDATE computadores SET terminal="{0}", ip="{1}", processador="{2}", memoria="{3}", windows_linux="{4}", edicao = "{5}",\
-            versao_sistema="{6}", loja = "{7}", Update_Date ="{8}" WHERE mac="{9}"'.format(Terminal,ip_local,processador_name,memoria,windows_linux,edicao_windows, versionwindows,loja,data,mac))
+            versao_sistema="{6}", loja = "{7}", Update_Date ="{8}" WHERE mac="{9}"'.format(Terminal,ip_local,processador_name,memoria,windows_linux,edicao_windows, versionwindows,loja,data,mac_txt))
    
 
     if windows_linux == 'Windows' and verificar_mac() == False:
-        mac_antigo = mac
-        mac_novo = get_mac()
+        mac_antigo = mac_txt
+        mac_novo = mac_atual_usado
         
         get_bd_mac_antigo = selecionar_itens_bd('SELECT mac_antigo FROM mac_alterado WHERE mac_antigo = "{0}"'.format(mac_antigo))
 
