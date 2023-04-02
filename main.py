@@ -106,6 +106,10 @@ if windows_linux == 'Windows':
             
             result = [' '.join(result)]
             processador_name = result[0]
+        return processador_name
+    
+    processador_name = get_processador()
+    edicao_windows = get_windows_edition()
 else: 
     processador_name = 'Unknown'
     edicao_windows = 'Unknown'
@@ -117,8 +121,8 @@ mac_txt = get_mac_txt()
 versionwindows = platform.version()
 memoria = get_memory()
 data = datetime.today().strftime('%Y-%m-%d') 
-edicao_windows = get_windows_edition()
- 
+
+
 
 
 
