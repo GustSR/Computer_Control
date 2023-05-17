@@ -3,55 +3,32 @@ import mysql.connector; import os.path; import re, uuid ;import socket; import p
 import psutil; from datetime import datetime; from mysql.connector import Error; from time import sleep;
 import ipaddress; import sys; import winreg;
 
-windows_linux = platform.system()
+
 
 
 '''
 Obter informações do computador:
 '''
+windows_linux = platform.system()
+mac_atual_usado = '-'.join(re.findall('..', '%012x' % uuid.getnode()))
 
-def get_mac():
-    # Obtém as informações da placa de rede
-    net_info = psutil.net_if_addrs()
-
-    # Percorre todas as placas de rede do sistema
-    for interface_name, interface_addresses in net_info.items():
-        # Verifica se a placa de rede é Ethernet
-        if 'Ethernet' in interface_name:
-            # Percorre todos os endereços da placa de rede
-            for address in interface_addresses:
-                # Verifica se o endereço é MAC
-                if address.family == psutil.AF_LINK:
-                    # Verifica se o endereço está sendo usado para o tráfego de rede
-                    if psutil.net_io_counters(pernic=True)[interface_name].bytes_sent > 0:
-                        # Armazena o endereço MAC em uma variável chamada 'mac'
-                        mac_andress = address.address
-                        
-                        # Verifica se o endereço MAC não é vazio
-                        if mac_andress:
-                            return mac_andress
-
-    # Se não for possível obter o endereço MAC usando psutil, usa a função uuid.getnode() para obter o endereço MAC
+def get_mac_txt():
     mac_andress = '-'.join(re.findall('..', '%012x' % uuid.getnode()))
-    return mac_andress
-# Nome do arquivo que irá armazenar o MAC address
-mac_file = 'mac.txt'
-
-# Verificar se o arquivo com o MAC address já existe
-if os.path.isfile(mac_file):
-    # Carregar o MAC address do arquivo existente
-    with open(mac_file, 'r') as f:
-        mac = f.read()
-   
-else:
-    mac = get_mac() # Obter o MAC address da placa de rede
-    with open(mac_file, 'w') as f: # Salvar o valor do MAC address em um arquivo
-        f.write(mac)
+    mac_file = 'mac.txt'
     
-if mac == get_mac():
-    mac_iguais = True
-else:
-    mac_iguais =False
+    if os.path.isfile(mac_file):    
+        with open(mac_file, 'r') as f:
+            mactxt = f.read()
+    else:
+        mactxt = mac_andress
+        with open(mac_file, 'w') as f: # Salvar o valor do MAC address em um arquivo
+            f.write(mactxt)
+    return mactxt
+
+def get_memory():
+    memoria_decimal = psutil.virtual_memory().total / (1024.0 **3)
+    memoria_arredondanda = round(memoria_decimal,3)
+    return memoria_arredondanda
 
 def extract_ip():
     st = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -64,6 +41,12 @@ def extract_ip():
         st.close()
     return IP
 
+def verificar_mac():
+    if mac_atual_usado == get_mac_txt():
+        mac_iguais = True
+    else:
+        mac_iguais =False
+    return mac_iguais
 
 if windows_linux == 'Windows':
     def get_windows_edition():
@@ -123,25 +106,23 @@ if windows_linux == 'Windows':
             
             result = [' '.join(result)]
             processador_name = result[0]
+        return processador_name
+    
+    processador_name = get_processador()
+    edicao_windows = get_windows_edition()
 else: 
     processador_name = 'Unknown'
     edicao_windows = 'Unknown'
 
 
-
-
-
-
-
 Terminal = socket.gethostname()
 ip_local = extract_ip()
+mac_txt = get_mac_txt()
 versionwindows = platform.version()
-memoria_decimal = psutil.virtual_memory().total / (1024.0 **3)
-memoria_arredondanda = round(memoria_decimal,3)
-memoria = memoria_arredondanda
+memoria = get_memory()
 data = datetime.today().strftime('%Y-%m-%d') 
-edicao_windows = get_windows_edition()
- 
+
+
 
 
 
@@ -162,7 +143,6 @@ def numero_da_loja_ip():
     Num_loja = [''.join(Lista_do_numero_da_loja)]
     
     return Num_loja[0]
-
 
 def numero_loja_terminal():
 
@@ -225,7 +205,6 @@ try:
     '''
     
     def selecionar_itens_bd(comando):
-        
         cursor.execute(comando)
         resultado = cursor.fetchall()
         conexao.commit()
@@ -233,29 +212,28 @@ try:
         return resultado
 
     def modificar_itens_bd(comando):
-        
         cursor.execute(comando)
         conexao.commit()
         
     '''
     Executando comandos para o banco MYSQL:
     '''
-    info_computador_bd = selecionar_itens_bd('SELECT mac FROM computadores WHERE mac = "{0}"'.format(mac)) 
-    info_date_computer = selecionar_itens_bd('SELECT Create_Date FROM computadores WHERE mac = "{0}"'.format(mac))
+    info_computador_bd = selecionar_itens_bd('SELECT mac FROM computadores WHERE mac = "{0}"'.format(mac_txt)) 
+    info_date_computer = selecionar_itens_bd('SELECT Create_Date FROM computadores WHERE mac = "{0}"'.format(mac_txt))
 
     if windows_linux == 'Windows':
         if info_computador_bd == []:
             modificar_itens_bd('INSERT INTO computadores (mac, terminal, ip, processador, memoria, windows_linux, edicao, versao_sistema,loja, Create_Date)\
-            VALUES ("{0}", "{1}", "{2}", "{3}", "{4}", "{5}", "{6}", "{7}", "{8}", "{9}");'.format(mac,Terminal,ip_local,processador_name,memoria,windows_linux, edicao_windows, versionwindows,loja,data))
+            VALUES ("{0}", "{1}", "{2}", "{3}", "{4}", "{5}", "{6}", "{7}", "{8}", "{9}");'.format(mac_txt,Terminal,ip_local,processador_name,memoria,windows_linux, edicao_windows, versionwindows,loja,data))
             
-        elif info_computador_bd[0][0] == mac:
+        elif info_computador_bd[0][0] == mac_txt:
             modificar_itens_bd('UPDATE computadores SET terminal="{0}", ip="{1}", processador="{2}", memoria="{3}", windows_linux="{4}", edicao = "{5}",\
-            versao_sistema="{6}", loja = "{7}", Update_Date ="{8}" WHERE mac="{9}"'.format(Terminal,ip_local,processador_name,memoria,windows_linux,edicao_windows, versionwindows,loja,data,mac))
+            versao_sistema="{6}", loja = "{7}", Update_Date ="{8}" WHERE mac="{9}"'.format(Terminal,ip_local,processador_name,memoria,windows_linux,edicao_windows, versionwindows,loja,data,mac_txt))
    
 
-    if windows_linux == 'Windows' and mac_iguais == False:
-        mac_antigo = mac
-        mac_novo = get_mac()
+    if windows_linux == 'Windows' and verificar_mac() == False:
+        mac_antigo = mac_txt
+        mac_novo = mac_atual_usado
         
         get_bd_mac_antigo = selecionar_itens_bd('SELECT mac_antigo FROM mac_alterado WHERE mac_antigo = "{0}"'.format(mac_antigo))
 
